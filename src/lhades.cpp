@@ -34,8 +34,8 @@ auto LHades::disassemble() -> std::string
 
     try {
         header();
-        load<char>();
-        function();
+        load<char>(); // skip upvalues info
+        function(0, std::string());
 
     } catch(std::string &errMsg) {
         m_ifs.close();
@@ -51,7 +51,7 @@ auto LHades::header() -> void
 {
     checkLiteral(LHADES_SIGNATURE, "invalid signature");
     m_ss << "\nLuaVersion: " << luaVersion()
-         << "\nFormatVersion: " << formatVersion();
+         << "\nFormatVersion: " << formatVersion() << "\n";
     checkLiteral(LHADES_DATA, "conversion error");
 
     checkSize<int>();
@@ -60,20 +60,11 @@ auto LHades::header() -> void
     checkSize<lua_Integer>();
     checkSize<lua_Number>();
 
-    {
-        lua_Integer buf;
-        m_ifs.read((char *)&buf, sizeof(lua_Integer));
-        if (LHADES_INT != buf) {
-            throw std::string("endianness mismatch");
-        }
+    if (LHADES_INT != load<lua_Integer>()) {
+        throw std::string("endianness mismatch");
     }
-
-    {
-        lua_Number buf;
-        m_ifs.read((char *)&buf, sizeof(lua_Number));
-        if (LHADES_NUM != buf) {
-            throw std::string("float format mismatch");
-        }
+    if (LHADES_NUM != load<lua_Number>()) {
+        throw std::string("float format mismatch");
     }
 }
 
@@ -105,25 +96,36 @@ auto LHades::formatVersion() -> std::string
     return std::string("official");
 }
 
-auto LHades::function() -> void
+auto LHades::space(int level) -> std::string
 {
-    auto source = loadString();
+    std::stringstream ss;
+    for (int i = 0; i < level; ++i) {
+        ss << "    ";
+    }
+    return ss.str();
+}
 
+auto LHades::function(int level, const std::string& source) -> void
+{
+    auto src = loadString();
+    if (src == std::string()) {
+        src = source;
+    }
     auto lineDefined = load<int>();
     auto lastLineDefined = load<int>();
     auto numParams = static_cast<int>(load<char>());
     auto isVararg = static_cast<bool>(load<char>());
     auto maxStackSize = static_cast<int>(load<char>());
 
-    m_ss << "\nfunction name \"" << source << "\", "
-         << "[" << lineDefined << " - " << lastLineDefined << "]"
-         << numParams << "params, "
-         << maxStackSize << "stacks";
+    m_ss << "source name \"" << src << "\", "
+         << "[" << lineDefined << " - " << lastLineDefined << "] "
+         << numParams << " params, "
+         << maxStackSize << " stacks";
 
-    loadCode();
-    loadConstants();
-    loadUpValues();
-    loadProtos();
+    loadCode(level);
+    loadConstants(level);
+    loadUpValues(level);
+    loadProtos(level, src);
 }
 
 auto LHades::loadString() -> std::string
@@ -145,21 +147,21 @@ auto LHades::loadString() -> std::string
     }
 }
 
-auto LHades::loadCode() -> void
+auto LHades::loadCode(int level) -> void
 {
     auto codeSize = load<int>();
-    m_ss << ", " << codeSize << "codes";
+    m_ss << "\n" << space(level) << ".codes: " << codeSize;
 
     for (int i = 0; i < codeSize; ++i) {
         auto code = OpCode::genCode(load<Instruction>());
-        m_ss << "\n  [" << i + 1 << "]  " << code;
+        m_ss << "\n" << space(level) << " [" << i + 1 << "]  " << code;
     }
 }
 
-auto LHades::loadConstants() -> void
+auto LHades::loadConstants(int level) -> void
 {
-    m_ss << "\n.const";
     auto constantsSize = load<int>();
+    m_ss << "\n" << space(level) << ".constants: " << constantsSize;
 
     for (int i = 0; i < constantsSize; ++i) {
         auto type = static_cast<int>(load<char>());
@@ -173,13 +175,13 @@ auto LHades::loadConstants() -> void
             }
             case LUA_TNUMINT: {
                 auto n = load<lua_Integer>();
-                m_ss << "\n  [" << i << "] " << n;
+                m_ss << "\n" << space(level) << " [" << i << "] " << n;
                 break;
             }
             case LUA_TSHRSTR:
             case LUA_TLNGSTR: {
                 auto s = loadString();
-                m_ss << "\n  [" << i << "] " << s;
+                m_ss << "\n" << space(level) << " [" << i << "] \"" << s << "\"";
                 break;
             }
             default:
@@ -188,25 +190,24 @@ auto LHades::loadConstants() -> void
     }
 }
 
-auto LHades::loadUpValues() -> void
+auto LHades::loadUpValues(int level) -> void
 {
-    m_ss << "\n.upvalues";
     auto upValuesSize = load<int>();
+    m_ss << "\n" << space(level) << ".upvalues: " << upValuesSize;
 
     for (int i = 0; i < upValuesSize; ++i) {
         auto s = loadString();
-        m_ss << "\n  [" << i << "] " << s;
+        m_ss << "\n" << space(level) << " [" << i << "] " << s;
     }
 }
 
-auto LHades::loadProtos() -> void
+auto LHades::loadProtos(int level, const std::string &source) -> void
 {
-    m_ss << "\n.protos";
     auto protosSize = static_cast<int>(load<int>());
-    std::cout << protosSize << std::endl;
+    m_ss << "\n" << space(level) << ".protos: " << protosSize;
 
     for (int i = 0; i < protosSize; ++i) {
-        m_ss << "\n  [" << i << "] ";
-        function();
+        m_ss << "\n" << space(level) << " [" << i << "] ";
+        function(level + 1, source);
     }
 }

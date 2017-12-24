@@ -21,12 +21,13 @@ private:
     auto checkLiteral(const std::string &str, const std::string &errMsg) -> void;
     auto luaVersion() -> std::string;
     auto formatVersion() -> std::string;
-    auto function() -> void;
+    auto space(int level) -> std::string;
+    auto function(int level, const std::string &source) -> void;
     auto loadString() -> std::string;
-    auto loadCode() -> void;
-    auto loadConstants() -> void;
-    auto loadUpValues() -> void;
-    auto loadProtos() -> void;
+    auto loadCode(int level) -> void;
+    auto loadConstants(int level) -> void;
+    auto loadUpValues(int level) -> void;
+    auto loadProtos(int level, const std::string &source) -> void;
 
     template <class T>
     auto load() -> T
