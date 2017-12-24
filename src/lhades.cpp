@@ -15,6 +15,7 @@
 
 #include "config.hpp"
 #include "lhades.hpp"
+#include "opcode.hpp"
 
 LHades::LHades(const char *filename)
     : m_filename(filename)
@@ -33,6 +34,10 @@ auto LHades::disassemble() -> std::string
 
     try {
         header();
+
+        auto numUpValues = static_cast<int>(load<char>());
+        function(numUpValues);
+
     } catch(std::string &errMsg) {
         m_ifs.close();
         std::cerr << errMsg << std::endl;
@@ -56,25 +61,32 @@ auto LHades::header() -> void
     checkSize<lua_Integer>();
     checkSize<lua_Number>();
 
-    if (LHADES_INT != load<lua_Integer>()) {
-        throw std::string("endianness mismatch");
+    {
+        lua_Integer buf;
+        m_ifs.read((char *)&buf, sizeof(lua_Integer));
+        if (LHADES_INT != buf) {
+            throw std::string("endianness mismatch");
+        }
     }
-    if (LHADES_NUM != load<lua_Number>()) {
-        throw std::string("float format mismatch");
+
+    {
+        lua_Number buf;
+        m_ifs.read((char *)&buf, sizeof(lua_Number));
+        if (LHADES_NUM != buf) {
+            throw std::string("float format mismatch");
+        }
     }
 }
 
 auto LHades::checkLiteral(const std::string &str, const std::string &errMsg) -> void
 {
     auto len = str.size();
-    auto buf = new char[len + 1];
-    m_ifs.read(buf, len);
-    buf[len + 1] = '\0';
+    std::string buf(len, '\0');
+    m_ifs.read(&buf[0], len);
 
-    if (std::strcmp(str.c_str(), buf) != 0) {
+    if (str != buf) {
         throw errMsg;
     }
-    delete[] buf;
 }
 
 auto LHades::luaVersion() -> std::string
@@ -87,9 +99,88 @@ auto LHades::luaVersion() -> std::string
 
 auto LHades::formatVersion() -> std::string
 {
-    char buf = load<char>();
+    auto buf = load<char>();
     if (buf != 0x00) {
         return std::to_string(buf);
     }
     return std::string("official");
+}
+
+auto LHades::function(int numUpValues) -> void
+{
+    auto source = loadString();
+
+    auto lineDefined = load<int>();
+    auto lastLineDefined = load<int>();
+    auto numParams = static_cast<int>(load<char>());
+    auto isVararg = static_cast<bool>(load<char>());
+    auto maxStackSize = static_cast<int>(load<char>());
+
+    m_ss << "\nfunction name \"" << source << "\", "
+         << "[" << lineDefined << " - " << lastLineDefined << "]"
+         << "\n" << numUpValues << "upvalues, "
+         << numParams << "params, "
+         << maxStackSize << "stacks";
+
+    loadCode();
+    loadConstants();
+}
+
+auto LHades::loadString() -> std::string
+{
+    std::size_t size = load<char>();
+    if (size == 0xFF) {
+        size = load<std::size_t>();
+    }
+
+    if (size == 0) {
+        return std::string();
+    } else {
+        std::string res(size, '\0');
+        m_ifs.read(&res[0], size - 1);
+        return res;
+    }
+}
+
+auto LHades::loadCode() -> void
+{
+    auto codeSize = load<int>();
+    m_ss << ", " << codeSize << "codes";
+
+    for (int i = 0; i < codeSize; ++i) {
+        auto code = OpCode::genCode(load<Instruction>());
+        m_ss << "\n  [" << i + 1 << "]  " << code;
+    }
+}
+
+auto LHades::loadConstants() -> void
+{
+    m_ss << "\n.const";
+    auto constantsSize = load<int>();
+
+    for (int i = 0; i < constantsSize; ++i) {
+        auto type = static_cast<int>(load<char>());
+
+        switch (type) {
+            case LUA_TBOOLEAN: {
+                auto b = load<char>();
+            }
+            case LUA_TNUMFLT: {
+                std::cout << "KOKpppO" << std::endl;
+            }
+            case LUA_TNUMINT: {
+                auto n = load<lua_Integer>();
+                m_ss << "\n  [" << i << "] " << n;
+                break;
+            }
+            case LUA_TSHRSTR:
+            case LUA_TLNGSTR: {
+                auto s = loadString();
+                m_ss << "\n  [" << i << "] " << s;
+                break;
+            }
+            default:
+                break;
+        }
+    }
 }
