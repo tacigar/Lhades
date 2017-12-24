@@ -3,7 +3,7 @@
 ** Copyright (C) 2017 tacigar
 */
 
-#include <iostream>
+#include <cassert>
 #include <iomanip>
 #include <string>
 #include <sstream>
@@ -13,18 +13,32 @@
 
 namespace {
 
-static constexpr int SIZE_OP  = 6;
-static constexpr int SIZE_A   = 8;
-static constexpr int SIZE_B   = 9;
-static constexpr int SIZE_C   = 9;
-static constexpr int SIZE_Ax  = SIZE_A + SIZE_B + SIZE_C;
-static constexpr int SIZE_Bx  = SIZE_B + SIZE_C;
-static constexpr int POS_OP   = 0;
-static constexpr int POS_A    = POS_OP + SIZE_OP;
-static constexpr int POS_C    = POS_A + SIZE_A;
-static constexpr int POS_B    = POS_C + SIZE_C;
-static constexpr int POS_Bx   = POS_C;
-static constexpr int POS_Ax   = POS_A;
+#define SIZE_OP  6
+#define SIZE_A   8
+#define SIZE_B   9
+#define SIZE_C   9
+#define SIZE_Ax  (SIZE_A + SIZE_B + SIZE_C)
+#define SIZE_Bx  (SIZE_B + SIZE_C)
+#define POS_OP   0
+#define POS_A    (POS_OP + SIZE_OP)
+#define POS_C    (POS_A + SIZE_A)
+#define POS_B    (POS_C + SIZE_C)
+#define POS_Bx   POS_C
+#define POS_Ax   POS_A
+
+#if SIZE_Bx < LUAI_BITSINT - 1
+#  define MAXARG_Bx  ((1 << SIZE_Bx) - 1)
+#  define MAXARG_sBx (MAXARG_Bx >> 1)
+#else
+#  define MAXARG_Bx  MAX_INT
+#  define MAXARG_sBx MAX_INT
+#endif
+
+#if SIZE_Ax < LUAI_BITSINT - 1
+#  define MAXARG_Ax  ((1 << SIZE_Ax) - 1)
+#else
+#  define MAXARG_Ax  MAX_INT
+#endif
 
 auto genMask(int n) -> int
 { return ~((~(Instruction)0) << (n)); }
@@ -48,7 +62,7 @@ auto getArgBx(Instruction inst) -> int
 { return (inst >> POS_Bx) & genMask(SIZE_Bx); }
 
 auto getArgSBx(Instruction inst) -> int
-{ return (inst >> POS_Bx) & genMask(SIZE_Bx); }
+{ return getArgBx(inst) - MAXARG_sBx; }
 
 auto genCodeAB(const std::string& op, Instruction inst) -> std::string
 {
@@ -96,6 +110,34 @@ auto genCodeABx(const std::string& op, Instruction inst) -> std::string
     return ss.str();
 }
 
+auto genCodeAC(const std::string &op, Instruction inst) -> std::string
+{
+    std::stringstream ss;
+
+    auto argA = getArgA(inst);
+    auto argC = getArgC(inst);
+
+    ss << std::left << std::setw(8) << op;
+    ss << std::right << std::setw(7) << argA;
+    ss << std::right << std::setw(7) << argC;
+
+    return ss.str();
+}
+
+auto genCodeASBx(const std::string &op, Instruction inst) -> std::string
+{
+    std::stringstream ss;
+
+    auto argA = getArgA(inst);
+    auto argSBx = getArgSBx(inst);
+
+    ss << std::left << std::setw(8) << op;
+    ss << std::right << std::setw(7) << argA;
+    ss << std::right << std::setw(7) << argSBx;
+
+    return ss.str();
+}
+
 } // namespace
 
 namespace OpCode {
@@ -107,7 +149,7 @@ auto genCode(Instruction inst) -> std::string
             return genCodeAB("MOVE", inst);
         case OP_LOADK: // 0x01
             return genCodeABx("LOADK", inst);
-        case OP_LOADKX: // 0x02
+        //case OP_LOADKX: // 0x02
         case OP_LOADBOOL: // 0x03
             return genCodeABC("LOADBOOL", inst);
         case OP_LOADNIL: // 0x04
@@ -163,6 +205,7 @@ auto genCode(Instruction inst) -> std::string
         case OP_CONCAT: // 0x1d
             return genCodeABC("CONCAT", inst);
         case OP_JMP: // 0x1e
+            return genCodeASBx("JMP", inst);
         case OP_EQ: // 0x1f
             return genCodeABC("EQ", inst);
         case OP_LT: // 0x20
@@ -170,6 +213,7 @@ auto genCode(Instruction inst) -> std::string
         case OP_LE: // 0x21
             return genCodeABC("LE", inst);
         case OP_TEST: // 0x22
+            return genCodeAC("TEST", inst);
         case OP_TESTSET: // 0x23
             return genCodeABC("TESTSET", inst);
         case OP_CALL: // 0x24
@@ -179,17 +223,22 @@ auto genCode(Instruction inst) -> std::string
         case OP_RETURN: // 0x26
             return genCodeAB("RETURN", inst);
         case OP_FORLOOP: // 0x27
+            return genCodeASBx("FORLOOP", inst);
         case OP_FORPREP: // 0x28
+            return genCodeASBx("FORPREP", inst);
         case OP_TFORCALL: // 0x29
+            return genCodeAC("TFORCALL", inst);
         case OP_TFORLOOP: // 0x2a
+            return genCodeASBx("TFORLOOP", inst);
         case OP_SETLIST: // 0x2b
             return genCodeABC("SETLIST", inst);
         case OP_CLOSURE: // 0x2c
             return genCodeABx("CLOSURE", inst);
         case OP_VARARG: // 0x2d
             return genCodeAB("VARARG", inst);
-        case OP_EXTRAARG: // 0x2e
-            break;
+        //case OP_EXTRAARG: // 0x2e
+        default:
+            assert(false);
     }
     return "";
 }

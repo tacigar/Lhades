@@ -28,6 +28,7 @@ private:
     auto loadConstants(int level) -> void;
     auto loadUpValues(int level) -> void;
     auto loadProtos(int level, const std::string &source) -> void;
+    auto loadDebug(int level) -> void;
 
     template <class T>
     auto load() -> T

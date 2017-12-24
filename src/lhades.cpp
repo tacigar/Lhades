@@ -7,6 +7,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <string>
 
@@ -126,6 +127,7 @@ auto LHades::function(int level, const std::string& source) -> void
     loadConstants(level);
     loadUpValues(level);
     loadProtos(level, src);
+    loadDebug(level);
 }
 
 auto LHades::loadString() -> std::string
@@ -136,9 +138,6 @@ auto LHades::loadString() -> std::string
     }
 
     if (size == 0) {
-        return std::string();
-    } else if (size == 1) {
-        load<char>();
         return std::string();
     } else {
         std::string res(size, '\0');
@@ -168,10 +167,15 @@ auto LHades::loadConstants(int level) -> void
 
         switch (type) {
             case LUA_TBOOLEAN: {
-                auto b = load<char>();
+                auto b = static_cast<bool>(load<char>());
+                m_ss << "\n" << space(level) << "  [" << i << "] "
+                     << std::boolalpha << b;
+                break;
             }
             case LUA_TNUMFLT: {
-                std::cout << "KOKpppO" << std::endl;
+                auto n = load<lua_Number>();
+                m_ss << "\n" << space(level) << "  [" << i << "] " << n;
+                break;
             }
             case LUA_TNUMINT: {
                 auto n = load<lua_Integer>();
@@ -196,8 +200,10 @@ auto LHades::loadUpValues(int level) -> void
     m_ss << "\n" << space(level) << ".upvalues: " << upValuesSize;
 
     for (int i = 0; i < upValuesSize; ++i) {
-        auto s = loadString();
-        m_ss << "\n" << space(level) << "  [" << i << "] " << s;
+        auto instack = static_cast<int>(load<char>());
+        auto index = static_cast<int>(load<char>());
+        m_ss << "\n" << space(level) << "  [" << i << "] "
+             << "instack " << instack << ", index " << index;
     }
 }
 
@@ -209,5 +215,32 @@ auto LHades::loadProtos(int level, const std::string &source) -> void
     for (int i = 0; i < protosSize; ++i) {
         m_ss << "\n" << space(level) << "  [" << i << "] ";
         function(level + 1, source);
+    }
+}
+
+auto LHades::loadDebug(int level) -> void
+{
+    auto sizeLineInfo = load<int>();
+    for (int i = 0; i < sizeLineInfo; ++i) { // skip line info
+        load<int>();
+    }
+
+    auto sizeLocalVars = load<int>();
+    m_ss << "\n" << space(level) << ".locals: " << sizeLocalVars;
+    for (int i = 0; i < sizeLocalVars; ++i) {
+        auto varName = loadString();
+        auto startPC = load<int>();
+        auto endPC = load<int>();
+        m_ss << "\n" << space(level) << "  [" << i << "] "
+             << "name \"" << varName << "\", startPC " << startPC
+             << ", endPC " << endPC;
+    }
+
+    auto sizeUpValues = load<int>();
+    m_ss << "\n" << space(level) << ".upvalues: " << sizeUpValues;
+    for (int i = 0; i < sizeUpValues; ++i) {
+        auto upValue = loadString();
+        m_ss << "\n" << space(level) << "  [" << i << "] "
+             << "\"" << upValue << "\"";
     }
 }
