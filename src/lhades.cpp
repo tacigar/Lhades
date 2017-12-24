@@ -34,9 +34,8 @@ auto LHades::disassemble() -> std::string
 
     try {
         header();
-
-        auto numUpValues = static_cast<int>(load<char>());
-        function(numUpValues);
+        load<char>();
+        function();
 
     } catch(std::string &errMsg) {
         m_ifs.close();
@@ -106,7 +105,7 @@ auto LHades::formatVersion() -> std::string
     return std::string("official");
 }
 
-auto LHades::function(int numUpValues) -> void
+auto LHades::function() -> void
 {
     auto source = loadString();
 
@@ -118,12 +117,13 @@ auto LHades::function(int numUpValues) -> void
 
     m_ss << "\nfunction name \"" << source << "\", "
          << "[" << lineDefined << " - " << lastLineDefined << "]"
-         << "\n" << numUpValues << "upvalues, "
          << numParams << "params, "
          << maxStackSize << "stacks";
 
     loadCode();
     loadConstants();
+    loadUpValues();
+    loadProtos();
 }
 
 auto LHades::loadString() -> std::string
@@ -134,6 +134,9 @@ auto LHades::loadString() -> std::string
     }
 
     if (size == 0) {
+        return std::string();
+    } else if (size == 1) {
+        load<char>();
         return std::string();
     } else {
         std::string res(size, '\0');
@@ -182,5 +185,28 @@ auto LHades::loadConstants() -> void
             default:
                 break;
         }
+    }
+}
+
+auto LHades::loadUpValues() -> void
+{
+    m_ss << "\n.upvalues";
+    auto upValuesSize = load<int>();
+
+    for (int i = 0; i < upValuesSize; ++i) {
+        auto s = loadString();
+        m_ss << "\n  [" << i << "] " << s;
+    }
+}
+
+auto LHades::loadProtos() -> void
+{
+    m_ss << "\n.protos";
+    auto protosSize = static_cast<int>(load<int>());
+    std::cout << protosSize << std::endl;
+
+    for (int i = 0; i < protosSize; ++i) {
+        m_ss << "\n  [" << i << "] ";
+        function();
     }
 }
