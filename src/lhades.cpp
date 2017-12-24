@@ -154,7 +154,7 @@ auto LHades::loadCode(int level) -> void
 
     for (int i = 0; i < codeSize; ++i) {
         auto code = OpCode::genCode(load<Instruction>());
-        m_ss << "\n" << space(level) << " [" << i + 1 << "]  " << code;
+        m_ss << "\n" << space(level) << "  [" << i + 1 << "]  " << code;
     }
 }
 
@@ -175,13 +175,13 @@ auto LHades::loadConstants(int level) -> void
             }
             case LUA_TNUMINT: {
                 auto n = load<lua_Integer>();
-                m_ss << "\n" << space(level) << " [" << i << "] " << n;
+                m_ss << "\n" << space(level) << "  [" << i << "] " << n;
                 break;
             }
             case LUA_TSHRSTR:
             case LUA_TLNGSTR: {
                 auto s = loadString();
-                m_ss << "\n" << space(level) << " [" << i << "] \"" << s << "\"";
+                m_ss << "\n" << space(level) << "  [" << i << "] \"" << s << "\"";
                 break;
             }
             default:
@@ -197,7 +197,7 @@ auto LHades::loadUpValues(int level) -> void
 
     for (int i = 0; i < upValuesSize; ++i) {
         auto s = loadString();
-        m_ss << "\n" << space(level) << " [" << i << "] " << s;
+        m_ss << "\n" << space(level) << "  [" << i << "] " << s;
     }
 }
 
@@ -207,7 +207,7 @@ auto LHades::loadProtos(int level, const std::string &source) -> void
     m_ss << "\n" << space(level) << ".protos: " << protosSize;
 
     for (int i = 0; i < protosSize; ++i) {
-        m_ss << "\n" << space(level) << " [" << i << "] ";
+        m_ss << "\n" << space(level) << "  [" << i << "] ";
         function(level + 1, source);
     }
 }
