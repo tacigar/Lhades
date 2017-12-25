@@ -3,6 +3,26 @@ lhades
 
 Lua Byte-Code Disassembler
 
+Install
+-------
+
+```sh
+git clone https://github.com/tacigar/lhades.git
+cd lhades
+luarocks make
+```
+
+Usage
+-----
+
+```sh
+lhades <byte-code filename>
+```
+
+
+Example
+-------
+
 ```lua
 local x = 7
 local function f(y)
