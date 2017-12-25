@@ -1,6 +1,5 @@
 CXX     = g++
 CFLAGS  = -std=c++1y
-INCDIR  = -I$(HOME)/.luaver/lua/5.3.2/include
 TARGET  = lhades
 SRCDIR  = src
 SRCS    = $(wildcard $(SRCDIR)/*.cpp)
@@ -11,10 +10,13 @@ OBJS    = $(SRCS:.cpp=.o)
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CXX) $(CFLAGS) $(INCDIR) -o $@ $^
+	$(CXX) $(CFLAGS) -I$(LUA_INCDIR) -o $@ $^
 
 $(SRCDIR)/%.o: $(SRCDIR)/%.cpp
-	$(CXX) $(CFLAGS) $(INCDIR) -o $@ -c $<
+	$(CXX) $(CFLAGS) -I$(LUA_INCDIR) -o $@ -c $<
 
 clean:
 	rm -f $(TARGET) $(OBJS)
+
+install:
+	cp lhades $(INST_BINDIR)
