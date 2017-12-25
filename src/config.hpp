@@ -9,11 +9,6 @@
 #include <lua.hpp>
 #include <luaconf.h>
 
-#define LHADES_SIGNATURE "\x1bLua"
-#define LHADES_DATA      "\x19\x93\r\n\x1a\n"
-#define LHADES_INT       0x5678
-#define LHADES_NUM       370.5
-
 #if LUAI_BITSINT >= 32
     typedef unsigned int Instruction;
 #else
