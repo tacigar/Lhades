@@ -18,10 +18,11 @@ class Constant
 {
 public:
     enum Type {
-        BOOLEAN = 0x00,
-        NUMBER  = 0x01,
-        INTEGER = 0x02,
-        STRING  = 0x03,
+        NIL     = 0x00,
+        BOOLEAN = 0x01,
+        NUMBER  = 0x02,
+        INTEGER = 0x03,
+        STRING  = 0x04,
     };
 
     static auto read(std::istream &is) -> std::shared_ptr<Constant>;

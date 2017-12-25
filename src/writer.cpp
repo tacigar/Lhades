@@ -144,6 +144,9 @@ auto Writer::writeConstant(std::ostream& os, const std::shared_ptr<Constant> con
 {
     os << "\x1b[39m";
     switch (constant->type()) {
+        case Constant::NIL:
+            os << "nil";
+            break;
         case Constant::BOOLEAN:
             os << std::boolalpha << constant->get<bool>();
             break;

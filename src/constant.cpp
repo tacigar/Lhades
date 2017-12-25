@@ -19,6 +19,9 @@ auto Constant::read(std::istream& is) -> std::shared_ptr<Constant>
 
     auto type = static_cast<int>(Reader::read<char>(is));
     switch (type) {
+        case LUA_TNIL:
+            constant->m_type = Type::NIL;
+            break;
         case LUA_TBOOLEAN: {
             auto b = static_cast<bool>(Reader::read<char>(is));
             constant->m_type = Type::BOOLEAN;
