@@ -123,10 +123,6 @@ auto Code::read(std::istream &is) -> std::shared_ptr<Code>
             code->m_sBx = getArgSBx(inst);
             break;
     }
-    if (code->m_A >= 256) code->m_A -= 256;
-    if (code->m_B >= 256) code->m_B -= 256;
-    if (code->m_C >= 256) code->m_C -= 256;
-
     return code;
 }
 
