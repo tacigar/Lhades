@@ -3,6 +3,7 @@
 ** Copyright (C) 2017 tacigar
 */
 
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <memory>
