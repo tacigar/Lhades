@@ -1,5 +1,5 @@
 package = "lhades"
-version = "0.1-0"
+version = "0.1-1"
 
 source = {
 	url = "git://github.com/tacigar/lhades.git",

@@ -1,11 +1,9 @@
-local x = 7
-local function f(y)
-	return function()
-		return x + y
-	end
-end
-local y = f(3)
+local name = "John"
 
-for i = 1, 5 do
-	print(y())
+function hello_world(count)
+    for i = 1, count do
+        print("Hello!, " .. name)
+    end
 end
+
+hello_world(3)

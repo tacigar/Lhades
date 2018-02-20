@@ -1,43 +1,3 @@
-lhades
-======
-
-Lua 5.3 Byte-Code Disassembler
-
-Install
--------
-
-```sh
-git clone https://github.com/tacigar/lhades.git
-cd lhades
-luarocks make
-```
-
-Usage
------
-
-```sh
-luac example.lua
-lhades luac.out
-```
-
-Example
--------
-
-```lua
-local name = "John"
-
-function hello_world(count)
-    for i = 1, count do
-        print("Hello!, " .. name)
-    end
-end
-
-hello_world(3)
-```
-
-↓
-
-```
 source name "@test.lua": 0 - 0: 0 params, 3 stacks
 .codes: 7
   [1] LOADK           0               0    ; R(0) := Kst(0)
@@ -83,4 +43,3 @@ source name "@test.lua": 0 - 0: 0 params, 3 stacks
       [3] "(for step)" (3 - 10)
       [4] "i" (4 - 9)
     .protos: 0
-```
